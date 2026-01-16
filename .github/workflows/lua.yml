@@ -1,27 +1,34 @@
-name: Build Lua Static Library
+name: 构建Lua静态库
 
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:  # 允许手动触发
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout your repo
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Clone Lua source
-        run: git clone --depth=1 https://github.com/LuaDist/lua.git lua-src
+      - name: Clone Lua source (LuaDist)
+        run: |
+          git clone --depth=1 https://github.com/LuaDist/lua.git lua-src
+          cd lua-src
+          ls -l Makefile  # 确认存在
 
       - name: Build liblua.a
         working-directory: ./lua-src
         run: |
           make linux MYCFLAGS="-fPIC" MYLIBS="-lm"
-          ls -l liblua.a  # 确认生成
+          ls -l liblua.a
+          if [ ! -f liblua.a ]; then
+            echo "Error: liblua.a not generated!"
+            exit 1
+          fi
 
-      - name: Upload liblua.a and headers
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: lua-static-linux
