@@ -12,16 +12,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Clone Lua source (LuaDist)
+      - name: Download and extract Lua source
         run: |
-          git clone --depth=1 https://github.com/LuaDist/lua.git lua-src
-          cd lua-src
-          ls -l Makefile
+          wget https://www.lua.org/ftp/lua-5.4.6.tar.gz
+          tar -xzf lua-5.4.6.tar.gz
+          mv lua-5.4.6 lua-src
 
       - name: Build liblua.a
         working-directory: ./lua-src
         run: |
-          make PLATFORM=linux
+          make linux MYCFLAGS="-fPIC" MYLIBS="-lm"
           if [ ! -f liblua.a ]; then
             echo "Error: liblua.a not generated!"
             exit 1
