@@ -22,16 +22,16 @@ jobs:
         working-directory: ./lua-src
         run: |
           make linux MYCFLAGS="-fPIC" MYLIBS="-lm"
-          if [ ! -f liblua.a ]; then
-            echo "Error: liblua.a not generated!"
+          if [ ! -f src/liblua.a ]; then
+            echo "Error: liblua.a not generated in src/!"
             exit 1
           fi
-          ls -l liblua.a
+          ls -l src/liblua.a
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: lua-static-linux
           path: |
-            lua-src/liblua.a
-            lua-src/*.h
+            lua-src/src/liblua.a
+            lua-src/src/*.h
