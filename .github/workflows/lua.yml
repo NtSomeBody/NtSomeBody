@@ -21,7 +21,7 @@ jobs:
       - name: Build liblua.a
         working-directory: ./lua-src
         run: |
-          make linux MYCFLAGS="-fPIC -std=c99" MYLIBS="-lm"
+          make linux MYCFLAGS="-fPIC" MYLIBS="-lm"
           if [ ! -f liblua.a ]; then
             echo "Error: liblua.a not generated!"
             exit 1
