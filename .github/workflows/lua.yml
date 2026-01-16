@@ -16,17 +16,17 @@ jobs:
         run: |
           git clone --depth=1 https://github.com/LuaDist/lua.git lua-src
           cd lua-src
-          ls -l Makefile  # 确认存在
+          ls -l Makefile
 
       - name: Build liblua.a
         working-directory: ./lua-src
         run: |
-          make linux MYCFLAGS="-fPIC" MYLIBS="-lm"
-          ls -l liblua.a
+          make all MYCFLAGS="-fPIC" MYLIBS="-lm"
           if [ ! -f liblua.a ]; then
             echo "Error: liblua.a not generated!"
             exit 1
           fi
+          ls -l liblua.a
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
