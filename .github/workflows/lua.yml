@@ -13,7 +13,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Clone Lua source
-        run: git clone --depth=1 https://github.com/lua/lua.git lua-src
+        run: git clone --depth=1 https://github.com/LuaDist/lua.git lua-src
 
       - name: Build liblua.a
         working-directory: ./lua-src
