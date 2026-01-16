@@ -1,0 +1,30 @@
+name: Build Lua Static Library
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout your repo
+        uses: actions/checkout@v4
+
+      - name: Clone Lua source
+        run: git clone --depth=1 https://github.com/lua/lua.git lua-src
+
+      - name: Build liblua.a
+        working-directory: ./lua-src
+        run: |
+          make linux MYCFLAGS="-fPIC" MYLIBS="-lm"
+          ls -l liblua.a  # 确认生成
+
+      - name: Upload liblua.a and headers
+        uses: actions/upload-artifact@v4
+        with:
+          name: lua-static-linux
+          path: |
+            lua-src/liblua.a
+            lua-src/*.h
