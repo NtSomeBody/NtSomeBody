@@ -18,7 +18,9 @@ jobs:
           sudo apt-get install -y \
             gcc-aarch64-linux-gnu \
             gcc-arm-linux-gnueabihf \
-            gcc-x86-64-linux-gnu
+            gcc-x86-64-linux-gnu \
+            libc6-dev-arm64-cross \
+            libc6-dev-armhf-cross
 
       - name: Download and extract Lua source
         run: |
@@ -30,7 +32,7 @@ jobs:
         working-directory: ./lua-src
         run: |
           make clean 2>/dev/null || true
-          make linux MYCFLAGS="-fPIC" MYLIBS="-lm"
+          make generic MYCFLAGS="-fPIC" MYLIBS="-lm"
           mkdir -p ../output/x86_64
           cp src/liblua.a ../output/x86_64/
           cp src/*.h ../output/x86_64/
@@ -39,7 +41,7 @@ jobs:
         working-directory: ./lua-src
         run: |
           make clean
-          make linux \
+          make generic \
             CC=aarch64-linux-gnu-gcc \
             AR=aarch64-linux-gnu-ar \
             RANLIB=aarch64-linux-gnu-ranlib \
@@ -53,7 +55,7 @@ jobs:
         working-directory: ./lua-src
         run: |
           make clean
-          make linux \
+          make generic \
             CC=arm-linux-gnueabihf-gcc \
             AR=arm-linux-gnueabihf-ar \
             RANLIB=arm-linux-gnueabihf-ranlib \
