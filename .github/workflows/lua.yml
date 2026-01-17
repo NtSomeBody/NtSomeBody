@@ -12,9 +12,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install 32-bit build dependencies
+      - name: Enable i386 architecture and install dependencies
         run: |
+          # 启用 32 位架构支持
+          sudo dpkg --add-architecture i386
           sudo apt-get update
+
+          # 安装 32 位编译依赖
           sudo apt-get install -y \
             gcc \
             libc6-dev:i386 \
@@ -29,18 +33,13 @@ jobs:
       - name: Build liblua.a for x86 (i686)
         working-directory: ./lua-src
         run: |
-          # Clean just in case
           make clean 2>/dev/null || true
-
-          # Build with 32-bit flags
           make generic \
             CC="gcc -m32" \
             AR="ar rcu" \
             RANLIB=ranlib \
             MYCFLAGS="-fPIC -m32" \
             MYLIBS="-lm"
-
-          # Prepare output directory
           mkdir -p ../output/x86
           cp src/liblua.a ../output/x86/
           cp src/*.h ../output/x86/
@@ -49,8 +48,8 @@ jobs:
         run: |
           file output/x86/liblua.a
 
-      - name: Upload x86 Lua static library
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: lua-static-x86
-          path: output/x86/act@v4
+          path: output/x86/
