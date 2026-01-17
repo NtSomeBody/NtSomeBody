@@ -6,83 +6,51 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-x86:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install cross-compilation toolchains
+      - name: Install 32-bit build dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            gcc-aarch64-linux-gnu \
-            gcc-arm-linux-gnueabihf \
-            libc6-dev-arm64-cross \
-            libc6-dev-armhf-cross \
-            gcc-multilib \
-            libc6-dev-i386
-      - name: Download and extract Lua source
+            gcc \
+            libc6-dev:i386 \
+            make
+
+      - name: Download Lua 5.4.6 source
         run: |
           wget https://www.lua.org/ftp/lua-5.4.6.tar.gz
           tar -xzf lua-5.4.6.tar.gz
           mv lua-5.4.6 lua-src
 
-      - name: Build liblua.a for x86_64
-        working-directory: ./lua-src
-        run: |
-          make clean 2>/dev/null || true
-          make generic MYCFLAGS="-fPIC" MYLIBS="-lm"
-          mkdir -p ../output/x86_64
-          cp src/liblua.a src/*.h ../output/x86_64/
-          
       - name: Build liblua.a for x86 (i686)
         working-directory: ./lua-src
         run: |
+          # Clean just in case
           make clean 2>/dev/null || true
+
+          # Build with 32-bit flags
           make generic \
             CC="gcc -m32" \
             AR="ar rcu" \
             RANLIB=ranlib \
             MYCFLAGS="-fPIC -m32" \
-            MYLIBS="-lm -m32"
+            MYLIBS="-lm"
+
+          # Prepare output directory
           mkdir -p ../output/x86
-          cp src/liblua.a src/*.h ../output/x86/
-          
-      - name: Build liblua.a for arm64 (aarch64)
-        working-directory: ./lua-src
-        run: |
-          make clean
-          make generic \
-            CC=aarch64-linux-gnu-gcc \
-            AR="aarch64-linux-gnu-ar rcu" \
-            RANLIB=aarch64-linux-gnu-ranlib \
-            MYCFLAGS="-fPIC" \
-            MYLIBS="-lm"
-          mkdir -p ../output/arm64
-          cp src/liblua.a src/*.h ../output/arm64/
+          cp src/liblua.a ../output/x86/
+          cp src/*.h ../output/x86/
 
-      - name: Build liblua.a for armv7 (armhf)
-        working-directory: ./lua-src
+      - name: Verify architecture
         run: |
-          make clean
-          make generic \
-            CC=arm-linux-gnueabihf-gcc \
-            AR="arm-linux-gnueabihf-ar rcu" \
-            RANLIB=arm-linux-gnueabihf-ranlib \
-            MYCFLAGS="-fPIC -march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=hard" \
-            MYLIBS="-lm"
-          mkdir -p ../output/armv7
-          cp src/liblua.a src/*.h ../output/armv7/
+          file output/x86/liblua.a
 
-      - name: Verify architectures (optional)
-        run: |
-          file output/x86_64/liblua.a
-          file output/arm64/liblua.a
-          file output/armv7/liblua.a
-
-      - name: Upload Artifact
+      - name: Upload x86 Lua static library
         uses: actions/upload-artifact@v4
         with:
-          name: lua-static-multiarch
-          path: output/
+          name: lua-static-x86
+          path: output/x86/act@v4
