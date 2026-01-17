@@ -34,7 +34,20 @@ jobs:
           make generic MYCFLAGS="-fPIC" MYLIBS="-lm"
           mkdir -p ../output/x86_64
           cp src/liblua.a src/*.h ../output/x86_64/
-
+          
+      - name: Build liblua.a for x86 (i686)
+        working-directory: ./lua-src
+        run: |
+          make clean 2>/dev/null || true
+          make generic \
+            CC="gcc -m32" \
+            AR="ar rcu" \
+            RANLIB=ranlib \
+            MYCFLAGS="-fPIC -m32" \
+            MYLIBS="-lm -m32"
+          mkdir -p ../output/x86
+          cp src/liblua.a src/*.h ../output/x86/
+          
       - name: Build liblua.a for arm64 (aarch64)
         working-directory: ./lua-src
         run: |
