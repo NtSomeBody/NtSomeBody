@@ -12,39 +12,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Enable i386 architecture and install dependencies
+      - name: Enable i386 and install deps
         run: |
-          # 启用 32 位架构支持
           sudo dpkg --add-architecture i386
           sudo apt-get update
+          sudo apt-get install -y gcc libc6-dev:i386 make
 
-          # 安装 32 位编译依赖
-          sudo apt-get install -y \
-            gcc \
-            libc6-dev:i386 \
-            make
-
-      - name: Download Lua 5.4.6 source
+      - name: Download Lua 5.4.6
         run: |
           wget https://www.lua.org/ftp/lua-5.4.6.tar.gz
           tar -xzf lua-5.4.6.tar.gz
           mv lua-5.4.6 lua-src
 
-      - name: Build liblua.a for x86 (i686)
+      - name: Build liblua.a (x86 only, no executable)
         working-directory: ./lua-src
         run: |
-          make clean 2>/dev/null || true
-          make generic \
+          make -C src liblua.a \
             CC="gcc -m32" \
             AR="ar rcu" \
             RANLIB=ranlib \
-            MYCFLAGS="-fPIC -m32" \
+            MYCFLAGS="-fPIC -m32 -DLUA_COMPAT_5_3" \
             MYLIBS="-lm"
           mkdir -p ../output/x86
-          cp src/liblua.a ../output/x86/
-          cp src/*.h ../output/x86/
+          cp src/liblua.a src/*.h ../output/x86/
 
-      - name: Verify architecture
+      - name: Verify
         run: |
           file output/x86/liblua.a
 
