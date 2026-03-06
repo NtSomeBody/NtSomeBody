@@ -1,0 +1,68 @@
+name: Build SimpleMail-Qt (Static + DLL)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-windows:
+    name: Build for Windows (MSVC)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.7.0'
+          target: 'desktop'
+          arch: 'win64_msvc2019_64'
+
+      - name: Set up env
+        run: |
+          $qt = Get-ChildItem C:\Qt -Filter msvc2019_64 -Recurse -Directory | Select-Object -First 1
+          echo "QTDIR=$qt" >> $env:GITHUB_ENV
+          echo "$qt\bin" >> $env:GITHUB_PATH
+
+      - name: Build STATIC library
+        working-directory: ./thirdparty/SimpleMail-Qt
+        run: |
+          qmake SimpleMail.pro
+          nmake release
+
+      - name: Build SHARED (DLL) library
+        working-directory: ./thirdparty/SimpleMail-Qt
+        run: |
+          qmake SimpleMail.pro CONFIG+=dll
+          nmake release
+
+      - name: Package artifacts
+        run: |
+          # --- Static ---
+          mkdir -p dist/static/lib
+          mkdir -p dist/static/include
+          copy thirdparty\SimpleMail-Qt\release\SimpleMail.lib dist\static\lib\
+          xcopy /s /e thirdparty\SimpleMail-Qt\src dist\static\include\
+
+          # --- DLL ---
+          mkdir -p dist/dll/bin
+          mkdir -p dist/dll/lib
+          mkdir -p dist/dll/include
+          copy thirdparty\SimpleMail-Qt\release\SimpleMail.dll dist\dll\bin\
+          copy thirdparty\SimpleMail-Qt\release\SimpleMail.lib dist\dll\lib\
+          xcopy /s /e thirdparty\SimpleMail-Qt\src dist\dll\include\
+
+      - name: Upload Static Library
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplemail-qt-windows-static
+          path: dist/static/
+
+      - name: Upload DLL Package
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplemail-qt-windows-dll
+          path: dist/dll/
