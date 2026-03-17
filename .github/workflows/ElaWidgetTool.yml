@@ -16,7 +16,7 @@ jobs:
         submodules: recursive
 
     - name: Install Qt 6.7.0
-      uses: jurplel/install-qt-action@v4.4.0
+      uses: jurplel/install-qt-action@v4
       with:
         version: '6.7.0'
         host: 'windows'
