@@ -1,68 +1,50 @@
-name: Build SimpleMail-Qt (Static + DLL)
+name: Build ElaWidgetTool (Qt6.7 + VS2022)
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main ]
 
 jobs:
-  build-windows:
-    name: Build for Windows (MSVC)
+  build:
     runs-on: windows-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
 
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: '6.7.0'
-          target: 'desktop'
-          arch: 'win64_msvc2019_64'
+    - name: Install Qt 6.7.0 for MSVC2019 64-bit
+      uses: jurplel/install-qt-action@v4.4.0
+      with:
+        version: '6.7.0'
+        host: 'windows'
+        target: 'desktop'
+        arch: 'win64_msvc2019_64'
+        modules: ''  # 留空表示只安装基础模块
 
-      - name: Set up env
-        run: |
-          $qt = Get-ChildItem C:\Qt -Filter msvc2019_64 -Recurse -Directory | Select-Object -First 1
-          echo "QTDIR=$qt" >> $env:GITHUB_ENV
-          echo "$qt\bin" >> $env:GITHUB_PATH
+    - name: Configure CMake
+      run: |
+        cmake -S . -B build ^
+          -DCMAKE_BUILD_TYPE=Release ^
+          -DCMAKE_PREFIX_PATH="${{ env.Qt6_DIR }}" ^
+          -DCMAKE_INSTALL_PREFIX="./install" ^
+          -DBUILD_SHARED_LIBS=ON ^
+          -G "Visual Studio 17 2022" -A x64
 
-      - name: Build STATIC library
-        working-directory: ./thirdparty/SimpleMail-Qt
-        run: |
-          qmake SimpleMail.pro
-          nmake release
+    - name: Build and Install
+      run: |
+        cmake --build build --config Release --target INSTALL --parallel 4
 
-      - name: Build SHARED (DLL) library
-        working-directory: ./thirdparty/SimpleMail-Qt
-        run: |
-          qmake SimpleMail.pro CONFIG+=dll
-          nmake release
+    - name: Package Binaries
+      run: |
+        mkdir release_package
+        Copy-Item -Recurse -Path "install/include" -Destination "release_package/"
+        Copy-Item -Path "install/lib/*.lib" -Destination "release_package/"
+        Copy-Item -Path "install/bin/*.dll" -Destination "release_package/"
+        Compress-Archive -Path "release_package/*" -DestinationPath "ElaWidgetTool-Qt6.7-MSVC2022.zip"
 
-      - name: Package artifacts
-        run: |
-          # --- Static ---
-          mkdir -p dist/static/lib
-          mkdir -p dist/static/include
-          copy thirdparty\SimpleMail-Qt\release\SimpleMail.lib dist\static\lib\
-          xcopy /s /e thirdparty\SimpleMail-Qt\src dist\static\include\
-
-          # --- DLL ---
-          mkdir -p dist/dll/bin
-          mkdir -p dist/dll/lib
-          mkdir -p dist/dll/include
-          copy thirdparty\SimpleMail-Qt\release\SimpleMail.dll dist\dll\bin\
-          copy thirdparty\SimpleMail-Qt\release\SimpleMail.lib dist\dll\lib\
-          xcopy /s /e thirdparty\SimpleMail-Qt\src dist\dll\include\
-
-      - name: Upload Static Library
-        uses: actions/upload-artifact@v4
-        with:
-          name: simplemail-qt-windows-static
-          path: dist/static/
-
-      - name: Upload DLL Package
-        uses: actions/upload-artifact@v4
-        with:
-          name: simplemail-qt-windows-dll
-          path: dist/dll/
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ElaWidgetTool-Binaries
+        path: ElaWidgetTool-Qt6.7-MSVC2022.zip
