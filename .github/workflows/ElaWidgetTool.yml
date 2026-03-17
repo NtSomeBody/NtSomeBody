@@ -41,16 +41,16 @@ jobs:
 
     - name: Package Binaries
       run: |
-        # 创建发布目录结构
         $pkg = "release_package"
         mkdir "$pkg/bin", "$pkg/lib", "$pkg/include"
 
-        # 复制头文件（来自仓库根目录 include/）
-        if (Test-Path "include") {
-          Copy-Item -Recurse "include/*" -Destination "$pkg/include/"
+        # ✅ 从项目根目录复制所有 .h 文件到 include/
+        Get-ChildItem -Path "." -Filter "*.h" | ForEach-Object {
+          Copy-Item $_.FullName -Destination "$pkg/include/"
         }
+        Write-Host "✅ Headers copied from root to include/"
 
-        # 复制 .dll 和 .lib（来自 build/ElaWidgetTools/Release/）
+        # 复制二进制文件
         $binDir = "build/ElaWidgetTools/Release"
         if (Test-Path $binDir) {
           Copy-Item "$binDir/*.dll" -Destination "$pkg/bin/" -ErrorAction SilentlyContinue
@@ -60,14 +60,10 @@ jobs:
         # 打包
         Compress-Archive -Path "$pkg/*" -DestinationPath "ElaWidgetTools-Qt6.7-MSVC2022.zip"
 
-        # 调试：确认 zip 存在
-        if (Test-Path "ElaWidgetTools-Qt6.7-MSVC2022.zip") {
-          Write-Host "✅ ZIP created successfully!" -ForegroundColor Green
-          Get-Item "ElaWidgetTools-Qt6.7-MSVC2022.zip"
-        } else {
-          Write-Host "❌ ZIP NOT FOUND!" -ForegroundColor Red
-          exit 1
-        }
+        # 验证
+        Expand-Archive -Path "ElaWidgetTools-Qt6.7-MSVC2022.zip" -DestinationPath "verify"
+        Write-Host "=== Include contents ==="
+        dir "verify/release_package/include" -Recurse
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
