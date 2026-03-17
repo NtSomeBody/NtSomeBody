@@ -1,4 +1,4 @@
-name: Build ElaWidgetTool (Qt6.9 + VS2022)
+name: Build ElaWidgetTool (Qt6.7 + VS2022)
 
 on:
   workflow_dispatch:
@@ -13,15 +13,15 @@ jobs:
       with:
         submodules: recursive
 
-    # 👇 关键步骤：自动安装 Qt 6.9 for MSVC2022 64-bit
-    - name: Install Qt 6.9
+    # 安装 Qt 6.7.0 for MSVC2022 64-bit
+    - name: Install Qt 6.7
       uses: jurplel/install-qt-action@v4
       with:
-        version: '6.9.0'
+        version: '6.7.0'          
         host: 'windows'
         target: 'desktop'
         arch: 'win64_msvc2022_64'
-        modules: '' # 如果需要额外模块（如 qt5compat），可以在这里加
+        modules: ''
 
     - name: Configure CMake
       run: |
@@ -42,10 +42,10 @@ jobs:
         Copy-Item -Recurse -Path "install/include" -Destination "release_package/"
         Copy-Item -Path "install/lib/*.lib" -Destination "release_package/"
         Copy-Item -Path "install/bin/*.dll" -Destination "release_package/"
-        Compress-Archive -Path "release_package/*" -DestinationPath "ElaWidgetTool-Qt6.9-MSVC2022.zip"
+        Compress-Archive -Path "release_package/*" -DestinationPath "ElaWidgetTool-Qt6.7-MSVC2022.zip"
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: ElaWidgetTool-Binaries
-        path: ElaWidgetTool-Qt6.9-MSVC2022.zip
+        path: ElaWidgetTool-Qt6.7-MSVC2022.zip
