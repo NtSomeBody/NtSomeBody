@@ -1,6 +1,8 @@
 name: Build ElaWidgetTool (Qt6.7 + VS2022)
 
 on:
+  push:
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
