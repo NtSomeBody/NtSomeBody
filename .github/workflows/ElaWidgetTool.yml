@@ -27,7 +27,7 @@ jobs:
       run: |
         cmake -S . -B build ^
           -DCMAKE_BUILD_TYPE=Release ^
-          -DCMAKE_PREFIX_PATH="${{ env.Qt6_Dir }}" ^
+          -DCMAKE_PREFIX_PATH="${{ env.Qt6_DIR }}" ^
           -DCMAKE_INSTALL_PREFIX="./install" ^
           -DBUILD_SHARED_LIBS=ON ^
           -G "Visual Studio 17 2022" -A x64
