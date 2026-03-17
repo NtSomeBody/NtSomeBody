@@ -1,0 +1,60 @@
+name: Build ElaWidgetTool (Qt6.9 + VS2022)
+
+on:
+  workflow_dispatch: # 这个配置让你可以在 GitHub 网页上手动点击运行
+    inputs:
+      build_type:
+        description: '选择构建类型'
+        required: true
+        default: 'Release'
+        type: choice
+        options:
+          - 'Release'
+          - 'Debug'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive # ElaUI 依赖子模块，必须递归拉取
+
+    - name: 设置环境变量
+      run: |
+        echo "BUILD_TYPE=${{ github.event.inputs.build_type }}" >> $env:GITHUB_ENV
+
+    - name: 配置 CMake (Qt6.9 + VS2022)
+      run: |
+        cmake -S . -B build `
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} `
+          -DCMAKE_PREFIX_PATH="C:/Qt/6.9.0/msvc2022_64" `
+          -DCMAKE_INSTALL_PREFIX="./install" `
+          -DBUILD_SHARED_LIBS=ON `
+          -G "Visual Studio 17 2022" -A x64
+
+    - name: 编译并安装
+      run: |
+        cmake --build build --config ${{ env.BUILD_TYPE }} --target INSTALL --parallel 4
+
+    - name: 整理文件并打包
+      run: |
+        # 创建一个干净的输出目录
+        mkdir release_package
+        # 复制头文件
+        Copy-Item -Recurse -Path "install/include" -Destination "release_package/"
+        # 复制 lib (导入库)
+        Copy-Item -Path "install/lib/*.lib" -Destination "release_package/"
+        # 复制 dll (动态库)
+        Copy-Item -Path "install/bin/*.dll" -Destination "release_package/"
+        
+        # 压缩成 zip
+        Compress-Archive -Path "release_package/*" -DestinationPath "ElaWidgetTool-Qt6.9-MSVC2022.zip"
+
+    - name: 上传 Release 资产
+      uses: actions/upload-artifact@v4
+      with:
+        name: ElaWidgetTool-Release-Binaries
+        path: ElaWidgetTool-Qt6.9-MSVC2022.zip
