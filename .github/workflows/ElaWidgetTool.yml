@@ -1,23 +1,22 @@
-name: Build ElaWidgetTool (Qt6.7 + VS2022)
+name: Build ElaWidgetTools (Qt6.7)
 
 on:
-  workflow_dispatch:  # 手动触发
+  workflow_dispatch:
   push:
-    branches: [ main ]  # 自动触发：仅当推送到 main 分支时
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout code
+    - name: Checkout ElaWidgetTools source
       uses: actions/checkout@v4
       with:
-        submodules: recursive
-        
-    - name: Debug - List root directory
-      run: dir
-      
+        repository: Liniyous/ElaWidgetTools   # 👈 正确的仓库
+        ref: main
+        submodules: false   # 该仓库无子模块（可省略或设为 false）
+
     - name: Install Qt 6.7.0
       uses: jurplel/install-qt-action@v4
       with:
@@ -43,13 +42,13 @@ jobs:
     - name: Package Binaries
       run: |
         mkdir release_package
-        Copy-Item -Recurse -Path "install/include" -Destination "release_package/"
-        Copy-Item -Path "install/lib/*.lib" -Destination "release_package/"
-        Copy-Item -Path "install/bin/*.dll" -Destination "release_package/"
-        Compress-Archive -Path "release_package/*" -DestinationPath "ElaWidgetTool-Qt6.7-MSVC2022.zip"
+        if (Test-Path "install/include") { Copy-Item -Recurse -Path "install/include" -Destination "release_package/" }
+        if (Test-Path "install/lib") { Copy-Item -Path "install/lib/*.lib" -Destination "release_package/" }
+        if (Test-Path "install/bin") { Copy-Item -Path "install/bin/*.dll" -Destination "release_package/" }
+        Compress-Archive -Path "release_package/*" -DestinationPath "ElaWidgetTools-Qt6.7-MSVC2022.zip"
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ElaWidgetTool-Binaries
-        path: ElaWidgetTool-Qt6.7-MSVC2022.zip
+        name: ElaWidgetTools-Binaries
+        path: ElaWidgetTools-Qt6.7-MSVC2022.zip
