@@ -41,11 +41,33 @@ jobs:
 
     - name: Package Binaries
       run: |
-        mkdir release_package
-        if (Test-Path "install/include") { Copy-Item -Recurse -Path "install/include" -Destination "release_package/" }
-        if (Test-Path "install/lib") { Copy-Item -Path "install/lib/*.lib" -Destination "release_package/" }
-        if (Test-Path "install/bin") { Copy-Item -Path "install/bin/*.dll" -Destination "release_package/" }
-        Compress-Archive -Path "release_package/*" -DestinationPath "ElaWidgetTools-Qt6.7-MSVC2022.zip"
+        # 创建发布目录结构
+        $pkg = "release_package"
+        mkdir "$pkg/bin", "$pkg/lib", "$pkg/include"
+
+        # 复制头文件（来自仓库根目录 include/）
+        if (Test-Path "include") {
+          Copy-Item -Recurse "include/*" -Destination "$pkg/include/"
+        }
+
+        # 复制 .dll 和 .lib（来自 build/ElaWidgetTools/Release/）
+        $binDir = "build/ElaWidgetTools/Release"
+        if (Test-Path $binDir) {
+          Copy-Item "$binDir/*.dll" -Destination "$pkg/bin/" -ErrorAction SilentlyContinue
+          Copy-Item "$binDir/*.lib" -Destination "$pkg/lib/" -ErrorAction SilentlyContinue
+        }
+
+        # 打包
+        Compress-Archive -Path "$pkg/*" -DestinationPath "ElaWidgetTools-Qt6.7-MSVC2022.zip"
+
+        # 调试：确认 zip 存在
+        if (Test-Path "ElaWidgetTools-Qt6.7-MSVC2022.zip") {
+          Write-Host "✅ ZIP created successfully!" -ForegroundColor Green
+          Get-Item "ElaWidgetTools-Qt6.7-MSVC2022.zip"
+        } else {
+          Write-Host "❌ ZIP NOT FOUND!" -ForegroundColor Red
+          exit 1
+        }
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
