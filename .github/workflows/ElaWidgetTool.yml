@@ -63,7 +63,7 @@ jobs:
         # 验证
         Expand-Archive -Path "ElaWidgetTools-Qt6.7-MSVC2022.zip" -DestinationPath "verify"
         Write-Host "=== Include contents ==="
-        dir "verify/release_package/include" -Recurse
+        dir "verify/include"
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
