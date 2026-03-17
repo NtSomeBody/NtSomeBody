@@ -33,6 +33,7 @@ jobs:
           -DCMAKE_INSTALL_PREFIX="./install" ^
           -DBUILD_SHARED_LIBS=ON ^
           -G "Visual Studio 17 2022" -A x64
+        shell: cmd
 
     - name: Build and Install
       run: |
