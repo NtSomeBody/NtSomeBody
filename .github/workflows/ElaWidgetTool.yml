@@ -1,9 +1,9 @@
 name: Build ElaWidgetTool (Qt6.7 + VS2022)
 
 on:
+  workflow_dispatch:  # 手动触发
   push:
-    branches: [ main ]
-  workflow_dispatch:
+    branches: [ main ]  # 自动触发：仅当推送到 main 分支时
 
 jobs:
   build:
@@ -15,25 +15,23 @@ jobs:
       with:
         submodules: recursive
 
-    # 安装 Qt 6.7.0 for MSVC2022 64-bit
-    - name: Install Qt 6.7
-      uses: jurplel/install-qt-action@v4
+    - name: Install Qt 6.7.0
+      uses: jurplel/install-qt-action@v4.4.0
       with:
         version: '6.7.0'
         host: 'windows'
-        target: 'desktop'  
+        target: 'desktop'
         arch: 'win64_msvc2019_64'
         modules: ''
 
     - name: Configure CMake
       run: |
-        cmake -S . -B build ^
-          -DCMAKE_BUILD_TYPE=Release ^
-          -DCMAKE_PREFIX_PATH="${{ env.Qt6_DIR }}" ^
-          -DCMAKE_INSTALL_PREFIX="./install" ^
-          -DBUILD_SHARED_LIBS=ON ^
+        cmake -S ElaWidgetTool -B build `
+          -DCMAKE_BUILD_TYPE=Release `
+          -DCMAKE_PREFIX_PATH="${{ env.Qt6_DIR }}" `
+          -DCMAKE_INSTALL_PREFIX="./install" `
+          -DBUILD_SHARED_LIBS=ON `
           -G "Visual Studio 17 2022" -A x64
-        shell: cmd
 
     - name: Build and Install
       run: |
