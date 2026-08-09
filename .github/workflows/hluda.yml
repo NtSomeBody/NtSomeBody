@@ -9,7 +9,7 @@ on:
       frida_version:
         description: 'Frida version to build'
         required: true
-        default: '17.16.4'
+        default: '17.1.0'
       patch_repo:
         description: 'Patch repo (Florida or strongR)'
         required: true
@@ -40,7 +40,7 @@ jobs:
 
       - name: Clone Frida source
         run: |
-          git clone --recurse-submodules -b ${{ github.event.inputs.frida_version || '17.16.4' }} https://github.com/frida/frida.git
+          git clone --recurse-submodules -b ${{ github.event.inputs.frida_version || '17.1.0' }} https://github.com/frida/frida.git
           cd frida
           git submodule update --init --recursive
 
@@ -51,6 +51,10 @@ jobs:
 
           if [ "${{ github.event.inputs.patch_repo }}" = "Florida" ]; then
             git clone https://github.com/Ylarod/Florida.git
+            cd Florida
+            # 切换到对应 frida 版本的 tag
+            git checkout tags/${{ github.event.inputs.frida_version || '17.1.0' }} || echo "⚠️ No matching tag, using default branch"
+            cd ..
             cd frida/subprojects/frida-core
             for p in $(ls ../../../Florida/patches/frida-core/*.patch | sort); do
               echo "=== Applying: $(basename $p) ==="
@@ -73,9 +77,9 @@ jobs:
 
       - name: Install Android NDK
         run: |
-          wget -q https://dl.google.com/android/repository/android-ndk-r29-linux.zip
-          unzip -q android-ndk-r29-linux.zip
-          echo "ANDROID_NDK_ROOT=$GITHUB_WORKSPACE/android-ndk-r29" >> $GITHUB_ENV
+          wget -q https://dl.google.com/android/repository/android-ndk-r27c-linux.zip
+          unzip -q android-ndk-r27c-linux.zip
+          echo "ANDROID_NDK_ROOT=$GITHUB_WORKSPACE/android-ndk-r27c" >> $GITHUB_ENV
 
       - name: Build frida-server
         run: |
