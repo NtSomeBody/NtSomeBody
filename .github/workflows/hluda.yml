@@ -76,19 +76,14 @@ jobs:
 
       - name: Clean old NDK and Install NDK r25c
         run: |
-          # 清除可能存在的环境变量干扰
           unset ANDROID_NDK_ROOT
           unset ANDROID_NDK_HOME
-          # 删除 runner 上可能预装的 NDK
           sudo rm -rf /usr/local/lib/android/sdk/ndk/*
           sudo rm -rf $ANDROID_HOME/ndk/* 2>/dev/null || true
-          # 下载并解压 NDK r25c
           wget -q https://dl.google.com/android/repository/android-ndk-r25c-linux.zip
           unzip -q android-ndk-r25c-linux.zip
-          # 设置环境变量
           echo "ANDROID_NDK_ROOT=$GITHUB_WORKSPACE/android-ndk-r25c" >> $GITHUB_ENV
           echo "ANDROID_NDK_HOME=$GITHUB_WORKSPACE/android-ndk-r25c" >> $GITHUB_ENV
-          # 验证 NDK 版本
           cat $GITHUB_WORKSPACE/android-ndk-r25c/source.properties
 
       - name: Build frida-server
@@ -100,11 +95,33 @@ jobs:
           ./configure --host=android-x86_64
           make -j$(nproc)
 
+          echo "=========================================="
+          echo "=== 查找编译产物 (find 打印所有结果) ==="
+          echo "=========================================="
+          echo "--- 查找 frida-server ---"
+          find . -name "frida-server" -type f
+          echo "--- 查找所有可执行文件 ---"
+          find build -type f -executable 2>/dev/null || true
+          echo "--- 列出 build 目录结构 ---"
+          find build -type f 2>/dev/null | head -50 || true
+          echo "=========================================="
+
+          # 复制产物到固定路径
+          SERVER_PATH=$(find . -name "frida-server" -type f | head -1)
+          if [ -z "$SERVER_PATH" ]; then
+            echo "❌ 编译产物 frida-server 未找到！"
+            exit 1
+          fi
+          mkdir -p $GITHUB_WORKSPACE/output
+          cp "$SERVER_PATH" $GITHUB_WORKSPACE/output/frida-server
+          echo "✅ 产物已复制到 output/frida-server"
+          ls -la $GITHUB_WORKSPACE/output/
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: florida-server-android-x86_64
-          path: frida/subprojects/frida-core/build/frida-android-x86_64/bin/frida-server
+          path: output/frida-server
 
   release:
     needs: build
