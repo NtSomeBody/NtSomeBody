@@ -1,19 +1,15 @@
-name: Build Florida/strongR Frida Server (x86_64)
+name: Build strongR-frida (hluda) Server (android-x86_64)
 
 on:
   push:
     tags:
-      - '*'
+      - 'v*'
   workflow_dispatch:
     inputs:
       frida_version:
         description: 'Frida version to build'
         required: true
-        default: '17.1.0'
-      patch_repo:
-        description: 'Patch repo (Florida or strongR)'
-        required: true
-        default: 'Florida'
+        default: '17.16.4'
 
 jobs:
   build:
@@ -40,39 +36,24 @@ jobs:
 
       - name: Clone Frida source
         run: |
-          git clone --recurse-submodules -b ${{ github.event.inputs.frida_version || '17.1.0' }} https://github.com/frida/frida.git
+          git clone --recurse-submodules -b ${{ github.event.inputs.frida_version || '17.16.4' }} https://github.com/frida/frida.git
           cd frida
           git submodule update --init --recursive
 
-      - name: Apply patches
+      - name: Apply strongR-frida patches
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
 
-          if [ "${{ github.event.inputs.patch_repo }}" = "Florida" ]; then
-            git clone https://github.com/Ylarod/Florida.git
-            cd Florida
-            git checkout tags/${{ github.event.inputs.frida_version || '17.1.0' }} || echo "⚠️ No matching tag, using default branch"
-            cd ..
-            cd frida/subprojects/frida-core
-            for p in $(ls ../../../Florida/patches/frida-core/*.patch | sort); do
-              echo "=== Applying: $(basename $p) ==="
-              if ! git am --3way "$p"; then
-                echo "⚠️ Patch failed: $(basename $p), skipping..."
-                git am --skip
-              fi
-            done
-          else
-            git clone https://github.com/hluwa/Patchs.git
-            cd frida/subprojects/frida-core
-            for p in $(ls ../../../Patchs/strongR-frida/frida-core/*.patch | sort); do
-              echo "=== Applying: $(basename $p) ==="
-              if ! git am --3way "$p"; then
-                echo "⚠️ Patch failed: $(basename $p), skipping..."
-                git am --skip
-              fi
-            done
-          fi
+          git clone https://github.com/hluwa/Patchs.git
+          cd frida/subprojects/frida-core
+          for p in $(ls ../../../Patchs/strongR-frida/frida-core/*.patch | sort); do
+            echo "=== Applying: $(basename $p) ==="
+            if ! git am --3way "$p"; then
+              echo "⚠️ Patch failed: $(basename $p), skipping..."
+              git am --skip
+            fi
+          done
 
       - name: Clean old NDK and Install NDK r25c
         run: |
@@ -96,7 +77,7 @@ jobs:
           make -j$(nproc)
 
           echo "=========================================="
-          echo "=== 查找编译产物 (find 打印所有结果) ==="
+          echo "=== 查找编译产物 ==="
           echo "=========================================="
           echo "--- 查找 frida-server ---"
           find . -name "frida-server" -type f
@@ -106,22 +87,22 @@ jobs:
           find build -type f 2>/dev/null | head -50 || true
           echo "=========================================="
 
-          # 复制产物到固定路径
           SERVER_PATH=$(find . -name "frida-server" -type f | head -1)
           if [ -z "$SERVER_PATH" ]; then
             echo "❌ 编译产物 frida-server 未找到！"
             exit 1
           fi
           mkdir -p $GITHUB_WORKSPACE/output
-          cp "$SERVER_PATH" $GITHUB_WORKSPACE/output/frida-server
-          echo "✅ 产物已复制到 output/frida-server"
+          cp "$SERVER_PATH" $GITHUB_WORKSPACE/output/hluda-server
+          chmod +x $GITHUB_WORKSPACE/output/hluda-server
+          echo "✅ 产物已复制到 output/hluda-server"
           ls -la $GITHUB_WORKSPACE/output/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: florida-server-android-x86_64
-          path: output/frida-server
+          name: hluda-server-android-x86_64
+          path: output/hluda-server
 
   release:
     needs: build
@@ -131,11 +112,12 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: florida-server-android-x86_64
+          name: hluda-server-android-x86_64
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: frida-server
+          files: hluda-server
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
