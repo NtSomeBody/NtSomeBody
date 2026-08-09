@@ -1,0 +1,106 @@
+name: Build Florida/strongR Frida Server
+
+on:
+  push:
+    tags:
+      - '*'
+  workflow_dispatch:
+    inputs:
+      frida_version:
+        description: 'Frida version to build'
+        required: true
+        default: '17.12'
+      patch_repo:
+        description: 'Patch repo (Florida or strongR)'
+        required: true
+        default: 'Florida'
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        arch: [arm64, arm, x86, x86_64]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 1. 安装 Python 3.10（frida 17.x 编译要求）
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      # 2. 安装 Node.js（frida 17.x 建议 v22）
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # 3. 安装编译依赖
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential git wget unzip bison flex
+
+      # 4. 克隆 frida 源码（含子模块）并切换到 17.12
+      - name: Clone Frida source
+        run: |
+          git clone --recurse-submodules -b ${{ github.event.inputs.frida_version || '17.12' }} https://github.com/frida/frida.git
+          cd frida
+          git submodule update --init --recursive
+
+      # 5. 克隆 patch 仓库并应用魔改补丁
+      - name: Apply patches
+        run: |
+          if [ "${{ github.event.inputs.patch_repo }}" = "Florida" ]; then
+            git clone https://github.com/Ylarod/Florida.git
+            cd frida/frida-core
+            git am ../../Florida/patches/frida-core/*.patch
+          else
+            git clone https://github.com/hluwa/Patchs.git
+            cd frida/frida-core
+            git am ../../Patchs/strongR-frida/frida-core/*.patch
+          fi
+
+      # 6. 安装 Android NDK（frida 17.12 建议使用 r27 或更新版本）
+      - name: Install Android NDK
+        run: |
+          wget -q https://dl.google.com/android/repository/android-ndk-r27c-linux.zip
+          unzip -q android-ndk-r27c-linux.zip
+          echo "ANDROID_NDK_ROOT=$GITHUB_WORKSPACE/android-ndk-r27c" >> $GITHUB_ENV
+
+      # 7. 编译 frida-server
+      - name: Build frida-server
+        run: |
+          cd frida
+          export ANDROID_NDK_ROOT=$ANDROID_NDK_ROOT
+          make core-android-${{ matrix.arch }}
+
+      # 8. 上传编译产物
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: florida-server-android-${{ matrix.arch }}
+          path: frida/build/frida-android-${{ matrix.arch }}/bin/frida-server
+
+  # 自动发布到 Releases（可选）
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            florida-server-android-arm64/frida-server
+            florida-server-android-arm/frida-server
+            florida-server-android-x86/frida-server
+            florida-server-android-x86_64/frida-server
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
