@@ -9,7 +9,7 @@ on:
       frida_version:
         description: 'Frida version to build'
         required: true
-        default: '17.12'
+        default: '17.1.2'
       patch_repo:
         description: 'Patch repo (Florida or strongR)'
         required: true
@@ -41,10 +41,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential git wget unzip bison flex
 
-      # 4. 克隆 frida 源码（含子模块）并切换到 17.12
+      # 4. 克隆 frida 源码（含子模块）并切换到 17.1.2
       - name: Clone Frida source
         run: |
-          git clone --recurse-submodules -b ${{ github.event.inputs.frida_version || '17.12' }} https://github.com/frida/frida.git
+          git clone --recurse-submodules -b ${{ github.event.inputs.frida_version || '17.1.2' }} https://github.com/frida/frida.git
           cd frida
           git submodule update --init --recursive
 
@@ -61,7 +61,7 @@ jobs:
             git am ../../Patchs/strongR-frida/frida-core/*.patch
           fi
 
-      # 6. 安装 Android NDK（frida 17.12 建议使用 r27 或更新版本）
+      # 6. 安装 Android NDK（frida 17.1.2 建议使用 r27 或更新版本）
       - name: Install Android NDK
         run: |
           wget -q https://dl.google.com/android/repository/android-ndk-r27c-linux.zip
