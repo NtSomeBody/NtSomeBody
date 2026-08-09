@@ -1,4 +1,4 @@
-name: Build Florida/strongR Frida Server
+name: Build Florida/strongR Frida Server (x86_64)
 
 on:
   push:
@@ -18,15 +18,12 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        arch: [arm64, arm, x86, x86_64]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 1. 安装 Python 3.10（frida 17.x 编译要求）
+      # 1. 安装 Python 3.10
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -71,19 +68,19 @@ jobs:
           unzip -q android-ndk-r27c-linux.zip
           echo "ANDROID_NDK_ROOT=$GITHUB_WORKSPACE/android-ndk-r27c" >> $GITHUB_ENV
 
-      # 7. 编译 frida-server
+      # 7. 编译 frida-server（仅 x86_64）
       - name: Build frida-server
         run: |
           cd frida
           export ANDROID_NDK_ROOT=$ANDROID_NDK_ROOT
-          make core-android-${{ matrix.arch }}
+          make core-android-x86_64
 
       # 8. 上传编译产物
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: florida-server-android-${{ matrix.arch }}
-          path: frida/build/frida-android-${{ matrix.arch }}/bin/frida-server
+          name: florida-server-android-x86_64
+          path: frida/build/frida-android-x86_64/bin/frida-server
 
   # 自动发布到 Releases（可选）
   release:
@@ -91,16 +88,14 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-22.04
     steps:
-      - name: Download all artifacts
+      - name: Download artifact
         uses: actions/download-artifact@v4
+        with:
+          name: florida-server-android-x86_64
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            florida-server-android-arm64/frida-server
-            florida-server-android-arm/frida-server
-            florida-server-android-x86/frida-server
-            florida-server-android-x86_64/frida-server
+          files: frida-server
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
