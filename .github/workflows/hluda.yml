@@ -74,16 +74,29 @@ jobs:
             done
           fi
 
-      - name: Install Android NDK
+      - name: Clean old NDK and Install NDK r25c
         run: |
-          wget -q https://dl.google.com/android/repository/android-ndk-r27c-linux.zip
-          unzip -q android-ndk-r27c-linux.zip
-          echo "ANDROID_NDK_ROOT=$GITHUB_WORKSPACE/android-ndk-r27c" >> $GITHUB_ENV
+          # 清除可能存在的环境变量干扰
+          unset ANDROID_NDK_ROOT
+          unset ANDROID_NDK_HOME
+          # 删除 runner 上可能预装的 NDK
+          sudo rm -rf /usr/local/lib/android/sdk/ndk/*
+          sudo rm -rf $ANDROID_HOME/ndk/* 2>/dev/null || true
+          # 下载并解压 NDK r25c
+          wget -q https://dl.google.com/android/repository/android-ndk-r25c-linux.zip
+          unzip -q android-ndk-r25c-linux.zip
+          # 设置环境变量
+          echo "ANDROID_NDK_ROOT=$GITHUB_WORKSPACE/android-ndk-r25c" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$GITHUB_WORKSPACE/android-ndk-r25c" >> $GITHUB_ENV
+          # 验证 NDK 版本
+          cat $GITHUB_WORKSPACE/android-ndk-r25c/source.properties
 
       - name: Build frida-server
         run: |
           cd frida/subprojects/frida-core
           export ANDROID_NDK_ROOT=$ANDROID_NDK_ROOT
+          echo "Using NDK: $ANDROID_NDK_ROOT"
+          cat $ANDROID_NDK_ROOT/source.properties
           ./configure --host=android-x86_64
           make -j$(nproc)
 
