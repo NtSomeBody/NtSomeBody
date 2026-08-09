@@ -9,7 +9,7 @@ on:
       frida_version:
         description: 'Frida version to build'
         required: true
-        default: '17.1.2'
+        default: '17.16.4'
       patch_repo:
         description: 'Patch repo (Florida or strongR)'
         required: true
@@ -23,70 +23,72 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 1. 安装 Python 3.10
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      # 2. 安装 Node.js（frida 17.x 建议 v22）
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
 
-      # 3. 安装编译依赖
       - name: Install build dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential git wget unzip bison flex
 
-      # 4. 克隆 frida 源码（含子模块）并切换到指定版本
       - name: Clone Frida source
         run: |
-          git clone --recurse-submodules -b ${{ github.event.inputs.frida_version || '17.1.2' }} https://github.com/frida/frida.git
+          git clone --recurse-submodules -b ${{ github.event.inputs.frida_version || '17.16.4' }} https://github.com/frida/frida.git
           cd frida
           git submodule update --init --recursive
 
-      # 5. 克隆 patch 仓库并应用魔改补丁（frida 17.x 路径为 subprojects/frida-core）
       - name: Apply patches
         run: |
-          # 配置 Git 身份（git am 需要）
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
 
           if [ "${{ github.event.inputs.patch_repo }}" = "Florida" ]; then
             git clone https://github.com/Ylarod/Florida.git
             cd frida/subprojects/frida-core
-            git am ../../../Florida/patches/frida-core/*.patch
+            for p in $(ls ../../../Florida/patches/frida-core/*.patch | sort); do
+              echo "=== Applying: $(basename $p) ==="
+              if ! git am --3way "$p"; then
+                echo "⚠️ Patch failed: $(basename $p), skipping..."
+                git am --skip
+              fi
+            done
           else
             git clone https://github.com/hluwa/Patchs.git
             cd frida/subprojects/frida-core
-            git am ../../../Patchs/strongR-frida/frida-core/*.patch
+            for p in $(ls ../../../Patchs/strongR-frida/frida-core/*.patch | sort); do
+              echo "=== Applying: $(basename $p) ==="
+              if ! git am --3way "$p"; then
+                echo "⚠️ Patch failed: $(basename $p), skipping..."
+                git am --skip
+              fi
+            done
           fi
 
-      # 6. 安装 Android NDK
       - name: Install Android NDK
         run: |
-          wget -q https://dl.google.com/android/repository/android-ndk-r27c-linux.zip
-          unzip -q android-ndk-r27c-linux.zip
-          echo "ANDROID_NDK_ROOT=$GITHUB_WORKSPACE/android-ndk-r27c" >> $GITHUB_ENV
+          wget -q https://dl.google.com/android/repository/android-ndk-r29-linux.zip
+          unzip -q android-ndk-r29-linux.zip
+          echo "ANDROID_NDK_ROOT=$GITHUB_WORKSPACE/android-ndk-r29" >> $GITHUB_ENV
 
-      # 7. 编译 frida-server（仅 x86_64）
       - name: Build frida-server
         run: |
           cd frida
           export ANDROID_NDK_ROOT=$ANDROID_NDK_ROOT
           make core-android-x86_64
 
-      # 8. 上传编译产物
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: florida-server-android-x86_64
           path: frida/build/frida-android-x86_64/bin/frida-server
 
-  # 自动发布到 Releases（可选）
   release:
     needs: build
     if: startsWith(github.ref, 'refs/tags/')
