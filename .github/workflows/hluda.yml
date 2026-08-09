@@ -82,15 +82,16 @@ jobs:
 
       - name: Build frida-server
         run: |
-          cd frida
+          cd frida/subprojects/frida-core
           export ANDROID_NDK_ROOT=$ANDROID_NDK_ROOT
-          make server-android-x86_64-static
+          ./configure --host=android-x86_64
+          make -j$(nproc)
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: florida-server-android-x86_64
-          path: frida/build/frida-android-x86_64/bin/frida-server
+          path: frida/subprojects/frida-core/build/frida-android-x86_64/bin/frida-server
 
   release:
     needs: build
